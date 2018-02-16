@@ -1,0 +1,5 @@
+**/model/*
+**/tempData/*
+*.pyc
+*.png
+*.npy
