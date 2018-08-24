@@ -10,18 +10,22 @@ import matplotlib.pyplot as plt
 #%%
 preThreshold = 0.5
 groundThreshold = 0.02
-leave_one_out_file = 'TrainingDataWbCT'
 
-organ = '187_gallbladder'
-#CTwb = 18
-#organ = '170_pancreas'
-#CTwb = 19
+#leave_one_out_file = 'TrainingData'
+leave_one_out_file = 'TrainingDataFull'
+#leave_one_out_file = 'TrainingDataWbCT'
+#leave_one_out_file = 'TrainingDataCeCT'
+
 #organ = '29193_first_lumbar_vertebra'
 #CTwb = 19
-#organ = '30324_right_adrenal_gland'
-#CTwb = 14
+#organ = '170_pancreas'
+#CTwb = 19
+organ = '187_gallbladder'
+CTwb = 18
 #organ = '30325_left_adrenal_gland'
 #CTwb = 15
+#organ = '30324_right_adrenal_gland'
+#CTwb = 14
 
 #%%
 def WriteListtoFile(filelist, filename):
@@ -32,23 +36,25 @@ def WriteListtoFile(filelist, filename):
 
 def diceComputing():        
     import CompareThePreandtruth as CTP
-    data_path = '/media/data/louis/ProgramWorkResult/VisercialUnet/'
-    ThreeDImageDir = os.path.join (data_path, 'Pred3D')
+    data_path = '/media/data/louis/ProgramWorkResult/ViscercialUnet_test_new/'
+    ThreeDImageDir = os.path.join (data_path, 'Pred3D', organ + leave_one_out_file)
     groundTruthDir = os.path.join (data_path, leave_one_out_file, organ +'_Linear_Labelpatch')
     predictInput = ThreeDImageDir + '/FileList.txt'
     groundTruthInput = groundTruthDir + '/FileList.txt'
-    predictOutput = os.path.join(data_path, 'Pred3DMod')
+    predictOutput = os.path.join(data_path, 'Pred3DMod', organ + leave_one_out_file )
     if not os.path.exists(predictOutput):
         subprocess.call('mkdir ' + '-p ' + predictOutput, shell=True)
-#    groundTruthOutput = '/media/data/louis/ProgramWorkResult/VisercialUnet/GT3DMod/'
-    
+   
     dicorestat = CTP.CompareThePreandTruth(predictInput, groundTruthInput)
     dicorestat.readPredictImagetoList()
     dicorestat.readgroundTruthtoList()
-    dicorestat.predictModification(predictOutput, preThreshold)
-#    dicorestat.groundTruthModification(groundTruthOutput, groundThreshold)
+    Filelist = dicorestat.predictModification(predictOutput, preThreshold)
+    Filelist.sort()
+    WriteListtoFile(Filelist, os.path.join(predictOutput,"FileList.txt"))
+    print('-'*30)
+    print('printing the DSC...')
+    print('-'*30)
     diceScore = dicorestat.diceScoreStatistics()
-
     wbCTDiceScore = diceScore[:CTwb]
     dice_Statistics = {}
     dice_Statistics['mean'] = np.mean(wbCTDiceScore)
@@ -64,30 +70,56 @@ def diceComputing():
     dice_Statistics['max'] = np.amax(CTceDiceScore)
     dice_Statistics['min'] = np.amin(CTceDiceScore)
     print dice_Statistics 
+    
+    
+    print('-'*30)
+    print('printing the TPR...')
+    print('-'*30)
+    TPR = dicorestat.TPRStatistics()
+    wbCTTPR = TPR[:CTwb]
+    TPR_Statistics = {}
+    TPR_Statistics['mean'] = np.mean(wbCTTPR)
+    TPR_Statistics['std'] = np.std(wbCTTPR)
+    TPR_Statistics['max'] = np.amax(wbCTTPR)
+    TPR_Statistics['min'] = np.amin(wbCTTPR)
+    print TPR_Statistics    
+    
+    CTceTPR = TPR[CTwb:]
+    TPR_Statistics = {}
+    TPR_Statistics['mean'] = np.mean(CTceTPR)
+    TPR_Statistics['std'] = np.std(CTceTPR)
+    TPR_Statistics['max'] = np.amax(CTceTPR)
+    TPR_Statistics['min'] = np.amin(CTceTPR)
+    print TPR_Statistics 
 
 def diceComputing_full():        
     import CompareThePreandtruth as CTP
-    data_path = '/media/data/louis/ProgramWorkResult/VisercialUnet/'
-    ThreeDImageDir = os.path.join (data_path, 'Pred3D')
+    data_path = '/media/data/louis/ProgramWorkResult/ViscercialUnet_test_new/'
+    ThreeDImageDir = os.path.join (data_path, 'Pred3D', organ + leave_one_out_file)
     groundTruthDir = os.path.join (data_path, leave_one_out_file, organ +'_Linear_Labelpatch')
     predictInput = ThreeDImageDir + '/FileList.txt'
     groundTruthInput = groundTruthDir + '/FileList.txt'
-    predictOutput = os.path.join(data_path, 'Pred3DMod')
+    predictOutput = os.path.join(data_path, 'Pred3DMod', organ + leave_one_out_file)
     if not os.path.exists(predictOutput):
         subprocess.call('mkdir ' + '-p ' + predictOutput, shell=True)
-#    groundTruthOutput = '/media/data/louis/ProgramWorkResult/VisercialUnet/GT3DMod/'
     
     dicorestat = CTP.CompareThePreandTruth(predictInput, groundTruthInput)
     dicorestat.readPredictImagetoList()
     dicorestat.readgroundTruthtoList()
-    dicorestat.predictModification(predictOutput, preThreshold)
-#    dicorestat.groundTruthModification(groundTruthOutput, groundThreshold)
+    Filelist = dicorestat.predictModification(predictOutput, preThreshold)
+    Filelist.sort()
+    WriteListtoFile(Filelist, os.path.join(predictOutput,"FileList.txt"))
+    print('-'*30)
+    print('printing the DSC...')
+    print('-'*30)
     dicorestat.diceScoreStatistics()
-
-
+    print('-'*30)
+    print('printing the TPR...')
+    print('-'*30)
+    dicorestat.TPRStatistics()
 
 def showlosscurve():
-    tempStore = './tempData' 
+    tempStore = './tempData_' + organ
 #    loss = np.load(os.path.join(tempStore,'loss.npy'))
 #    val_loss = np.load(os.path.join(tempStore,'val_loss.npy'))
     loss = np.load(os.path.join(tempStore,'10000011_1_CT_loss.npy'))
@@ -98,6 +130,7 @@ def showlosscurve():
     plt.show()
 
 if __name__ == '__main__':
-#    diceComputing()
-    diceComputing_full()
+    print organ
+    diceComputing()
+#    diceComputing_full()
     showlosscurve()

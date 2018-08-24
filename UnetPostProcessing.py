@@ -13,23 +13,29 @@ preThreshold = 0.5
 groundThreshold = 0.02
 
 #organ = '29193_first_lumbar_vertebra'
+#sliceNum = 56
+#image_rows = 88
+#image_cols = 64
 
-#organ = '170_pancreas'
+organ = '170_pancreas'
+sliceNum = 80
+image_rows = 72
+image_cols = 120
 
 #organ = '187_gallbladder'
-#sliceNum = 38
-#image_rows = 56
-#image_cols = 48
+#sliceNum = 80
+#image_rows = 80
+#image_cols = 80
 
 #organ = '30325_left_adrenal_gland'
-#sliceNum = 24
-#image_rows = 32
-#image_cols = 24
+#sliceNum = 40
+#image_rows = 56
+#image_cols = 40
 
-organ = '30324_right_adrenal_gland'
-sliceNum = 80
-image_rows = 56
-image_cols = 40
+#organ = '30324_right_adrenal_gland'
+#sliceNum = 104
+#image_rows = 64
+#image_cols = 48
 
 
 #%%
@@ -70,7 +76,7 @@ def VolumeDataToVolumes(tempStore, ThreeDImageDir, Reference, sliceNum, image_ro
             threeDImageArray[j,:,:] = imgs_label_test[i*sliceNum+j,:,:,0]
         
         threeDimage = sitk.GetImageFromArray(threeDImageArray)
-        threeDimage.SetOrigin(Reference['origin'])                               
+        threeDimage.SetOrigin(Reference['origin'])
         threeDimage.SetSpacing(Reference['spacing'])                                
         threeDimage.SetDirection(Reference['direction'])
         
@@ -122,7 +128,7 @@ def diceComputing():
     dicorestat.diceScoreStatistics()     
 
 if __name__ == '__main__':
-    tempStore = './tempData' 
+    tempStore = './tempData_' + organ
     Test3DDataCollecting(tempStore)
     diceComputing()
     showlosscurve()

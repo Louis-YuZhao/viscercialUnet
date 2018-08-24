@@ -1,5 +1,12 @@
 **/model/*
 **/tempData/*
+**/TrainingDataCeCT/*
+**/TrainingDataFull/*
+**/TrainingDataWbCT/*
+**/Pred3DMod/*
+**/Pred3D/*
+**/InverseTrans/*
 *.pyc
 *.png
 *.npy
+*.h5

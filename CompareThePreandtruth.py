@@ -33,6 +33,17 @@ class CompareThePreandTruth(object):
             self.groundTruthList = f.read().splitlines()
         self.groundTruthList.sort()
         return self.groundTruthList
+    
+    def __TPRCalculation(self, y_true, y_pred):
+
+        k = 1
+        constraint = 10**(-2)
+        Nonzero_A = np.transpose(np.nonzero(np.abs(y_true) > constraint))
+        Nonzero_B = np.transpose(np.nonzero(np.abs(y_pred) > constraint))
+        y_true[Nonzero_A]=k
+        y_pred[Nonzero_B]=k
+        dice = np.sum(y_true[y_pred==k])/(np.sum(y_true))
+        return dice
 
     def thresholdModification(self, InputImageList, result_dir, threshold = 10**(-2)):
         outputlist = []
@@ -73,7 +84,7 @@ class CompareThePreandTruth(object):
             should match that of the ground truth iamges')
         self.listLength = len(self.predictList)
         
-        diceScore = np.zeros((self.listLength,))    
+        diceScore = np.zeros((self.listLength,))
         for i in xrange(self.listLength):
             
             ImgroundTruth = sitk.ReadImage(self.groundTruthList[i])
@@ -84,14 +95,43 @@ class CompareThePreandTruth(object):
             ImPred_array = sitk.GetArrayFromImage(ImPred)
             y_pred = np.reshape(ImPred_array,-1)
             
-            diceScore[i] = f1_score(y_true, y_pred)
-
+            diceScore[i] = f1_score(y_true, y_pred)        
+        
         dice_Statistics = {}
         dice_Statistics['mean'] = np.mean(diceScore)
         dice_Statistics['std'] = np.std(diceScore)
         dice_Statistics['max'] = np.amax(diceScore)
         dice_Statistics['min'] = np.amin(diceScore)
         print diceScore
+        print "DICE:"
         print dice_Statistics
-        
         return diceScore
+        
+    def TPRStatistics(self):
+        
+        if len(self.predictList)!= len(self.groundTruthList):
+            raise ValueError('the num of predicted images\
+            should match that of the ground truth iamges')
+        self.listLength = len(self.predictList)        
+        
+        TPR = np.zeros((self.listLength,))
+        for i in xrange(self.listLength):
+            
+            ImgroundTruth = sitk.ReadImage(self.groundTruthList[i])
+            TmGT_array = sitk.GetArrayFromImage(ImgroundTruth)
+            y_true = np.reshape(TmGT_array,-1)            
+
+            ImPred = sitk.ReadImage(self.predictList[i])
+            ImPred_array = sitk.GetArrayFromImage(ImPred)
+            y_pred = np.reshape(ImPred_array,-1)            
+                
+            TPR[i] = self.__TPRCalculation(y_true, y_pred)
+        
+        TPR_Statistics = {}
+        TPR_Statistics['mean'] = np.mean(TPR)
+        TPR_Statistics['std'] = np.std(TPR)
+        TPR_Statistics['max'] = np.amax(TPR)
+        TPR_Statistics['min'] = np.amin(TPR)
+        print "TPR:"
+        print TPR_Statistics    
+        return TPR

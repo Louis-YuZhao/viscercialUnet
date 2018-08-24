@@ -22,16 +22,20 @@ K.set_image_data_format('channels_last')  # TF dimension ordering in this code
 
 #%%
 IFLeaveOne = True
-leave_one_out_file = 'TrainingDataWbCT'
+leave_one_out_file = 'TrainingDataFull'
+#leave_one_out_file = 'TrainingDataWbCT'
 
 #organ = '29193_first_lumbar_vertebra'
 
-#organ = '170_pancreas'
+organ = '170_pancreas'
+sliceNum = 56
+image_rows = 72
+image_cols = 112
 
-organ = '187_gallbladder'
-sliceNum = 38
-image_rows = 56
-image_cols = 48
+#organ = '187_gallbladder'
+#sliceNum = 38
+#image_rows = 56
+#image_cols = 48
 
 #organ = '30325_left_adrenal_gland'
 #sliceNum = 24
@@ -48,8 +52,8 @@ IfglobalNorm = False
 
 learningRate = 1e-5
 batch_size = 50
-epochs = 200
-loss_weights=[0.9, 0.1]
+epochs = 100
+loss_weights=[1, 0.3]
 
 def dice_coef(y_true, y_pred):
     y_true_f = K.flatten(y_true)
@@ -60,7 +64,7 @@ def dice_coef(y_true, y_pred):
 def dice_coef_loss(y_true, y_pred):
     return -dice_coef(y_true, y_pred)
 
-def get_unet_shallow():
+def get_unet_shallow_twoLoss():
     inputs = Input((image_rows, image_cols, 1))
     masks = Input((image_rows, image_cols, 1))
     conv1 = Conv2D(32, (3, 3), activation='relu', padding='same')(inputs)
@@ -101,7 +105,7 @@ def get_unet_shallow():
 
     return model
 
-def get_unet_short():
+def get_unet_short_twoLoss():
     inputs = Input((image_rows, image_cols, 1))
     masks = Input((image_rows, image_cols, 1))
     conv1 = Conv2D(32, (5, 5), activation='relu', padding='same')(inputs)
@@ -134,64 +138,6 @@ def get_unet_short():
     conv8 = Conv2D(64, (3, 3), activation='relu', padding='same')(up8)
     conv8 = Conv2D(64, (3, 3), activation='relu', padding='same')(conv8)
 
-    up9 = concatenate([Conv2DTranspose(32, (2, 2), strides=(2, 2), padding='same')(conv8), conv1], axis=3)#organ = '170_pancreas'
-    conv9 = Conv2D(32, (3, 3), activation='relu', padding='same')(up9)
-    conv9 = Conv2D(32, (3, 3), activation='relu', padding='same')(conv9)
-    conv9out = Conv2D(1, (1, 1), activation='sigmoid')(conv9)
-
-    conv10Block1 = Conv2D(32, (3, 3), activation='relu', padding='same')(conv9out)
-    conv10Block2 = Conv2D(32, (3, 3), activation='relu', padding='same')(masks)
-    conv11 = concatenate([conv10Block1, conv10Block2], axis=3)
-
-    conv12 = Conv2D(32, (3, 3), activation='relu', padding='same')(conv11)
-    conv12 = Conv2D(32, (3, 3), activation='relu', padding='same')(conv12)
-    conv12 = Conv2D(32, (3, 3), activation='relu', padding='same')(conv12)
-    conv12 = Conv2D(32, (3, 3), activation='relu', padding='same')(conv12)
-    conv12 = Conv2D(32, (3, 3), activation='relu', padding='same')(conv12)
-
-    conv13 = Conv2D(1, (1, 1), activation='sigmoid')(conv12)
-
-    model = Model(inputs=[inputs, masks], outputs=[conv13, conv9out])
-
-    model.compile(optimizer=Adam(lr=learningRate), loss=[dice_coef_loss, dice_coef_loss], loss_weights=loss_weights)
-
-    return model
-
-
-def get_unet():
-    inputs = Input((image_rows, image_cols, 1))
-    masks = Input((image_rows, image_cols, 1))
-    conv1 = Conv2D(32, (3, 3), activation='relu', padding='same')(inputs)
-    conv1 = Conv2D(32, (3, 3), activation='relu', padding='same')(conv1)
-    pool1 = MaxPooling2D(pool_size=(2, 2))(conv1)
-
-    conv2 = Conv2D(64, (3, 3), activation='relu', padding='same')(pool1)
-    conv2 = Conv2D(64, (3, 3), activation='relu', padding='same')(conv2)
-    pool2 = MaxPooling2D(pool_size=(2, 2))(conv2)
-
-    conv3 = Conv2D(128, (3, 3), activation='relu', padding='same')(pool2)
-    conv3 = Conv2D(128, (3, 3), activation='relu', padding='same')(conv3)
-    pool3 = MaxPooling2D(pool_size=(2, 2))(conv3)
-
-    conv4 = Conv2D(256, (3, 3), activation='relu', padding='same')(pool3)
-    conv4 = Conv2D(256, (3, 3), activation='relu', padding='same')(conv4)
-    pool4 = MaxPooling2D(pool_size=(2, 2))(conv4)
-
-    conv5 = Conv2D(512, (3, 3), activation='relu', padding='same')(pool4)
-    conv5 = Conv2D(512, (3, 3), activation='relu', padding='same')(conv5)
-
-    up6 = concatenate([Conv2DTranspose(256, (2, 2), strides=(2, 2), padding='same')(conv5), conv4], axis=3)
-    conv6 = Conv2D(256, (3, 3), activation='relu', padding='same')(up6)
-    conv6 = Conv2D(256, (3, 3), activation='relu', padding='same')(conv6)
-
-    up7 = concatenate([Conv2DTranspose(128, (2, 2), strides=(2, 2), padding='same')(conv6), conv3], axis=3)
-    conv7 = Conv2D(128, (3, 3), activation='relu', padding='same')(up7)
-    conv7 = Conv2D(128, (3, 3), activation='relu', padding='same')(conv7)
-
-    up8 = concatenate([Conv2DTranspose(64, (2, 2), strides=(2, 2), padding='same')(conv7), conv2], axis=3)
-    conv8 = Conv2D(64, (3, 3), activation='relu', padding='same')(up8)
-    conv8 = Conv2D(64, (3, 3), activation='relu', padding='same')(conv8)
-
     up9 = concatenate([Conv2DTranspose(32, (2, 2), strides=(2, 2), padding='same')(conv8), conv1], axis=3)
     conv9 = Conv2D(32, (3, 3), activation='relu', padding='same')(up9)
     conv9 = Conv2D(32, (3, 3), activation='relu', padding='same')(conv9)
@@ -202,15 +148,16 @@ def get_unet():
     conv11 = concatenate([conv10Block1, conv10Block2], axis=3)
 
     conv12 = Conv2D(32, (3, 3), activation='relu', padding='same')(conv11)
-    conv12 = Conv2D(32, (3, 3), activation='relu', padding='same')(conv12)
-    conv12 = Conv2D(32, (3, 3), activation='relu', padding='same')(conv12)
+    conv12 = Conv2D(64, (3, 3), activation='relu', padding='same')(conv12)
+    conv12 = Conv2D(128, (3, 3), activation='relu', padding='same')(conv12)
+    conv12 = Conv2D(64, (3, 3), activation='relu', padding='same')(conv12)
     conv12 = Conv2D(32, (3, 3), activation='relu', padding='same')(conv12)
 
     conv13 = Conv2D(1, (1, 1), activation='sigmoid')(conv12)
 
     model = Model(inputs=[inputs, masks], outputs=[conv13, conv9out])
 
-    model.compile(optimizer=Adam(lr=learningRate), loss=[dice_coef_loss, dice_coef_loss], loss_weights = loss_weights)
+    model.compile(optimizer=Adam(lr=learningRate), loss=[dice_coef_loss, dice_coef_loss], loss_weights=loss_weights)
 
     return model
 
@@ -248,17 +195,20 @@ def train_and_predict(tempStore, modelPath):
     print('-'*30)
     print('Creating and compiling model...')
     print('-'*30)
-    model = get_unet_short()
+    
+    ####################################
+    model = get_unet_short_twoLoss()
+    ####################################
     model_checkpoint = ModelCheckpoint(os.path.join(modelPath,'weights.h5'), monitor='val_loss', save_best_only=True)
     
-    early_stop = EarlyStopping(monitor='val_loss', min_delta=0, patience=40, verbose=0, mode='auto')
+    early_stop = EarlyStopping(monitor='val_loss', min_delta=0, patience=20, verbose=0, mode='auto')
 # 
     print('-'*30)
     print('Fitting model...')
     print('-'*30)
     train_history = model.fit([imgs_train, addInformation_train], [imgs_label_train, imgs_label_train], batch_size,\
     epochs, verbose=1, shuffle=True, validation_split=0.2,\
-    callbacks=[model_checkpoint])
+    callbacks=[model_checkpoint, early_stop])
     
     loss = train_history.history['loss']
     val_loss = train_history.history['val_loss']
@@ -327,14 +277,17 @@ def train_leave_one_out(tempStore, modelPath, testOutputDir, Reference):
         currentTrainAdd = np.delete(addInformation_train,range(i*sliceNum,(i+1)*sliceNum), axis=0)
     
         # begin the model
-        model = get_unet_short()
+        ############################
+        model = get_unet_short_twoLoss()
+        ############################
+        
         weightName = modelPath + '/' + outBaseName + '_weights.h5'
         model_checkpoint = ModelCheckpoint(weightName, monitor='val_loss', save_best_only=True)
-        early_stop = EarlyStopping(monitor='val_loss', min_delta=0, patience=40, verbose=0, mode='auto')
+        early_stop = EarlyStopping(monitor='val_loss', min_delta=0, patience=20, verbose=0, mode='auto')
 
         train_history = model.fit([currentTrainImgs, currentTrainAdd], [currentTrainLab,currentTrainLab], batch_size,\
         epochs, verbose=1, shuffle=True, validation_split=0.2,\
-        callbacks=[model_checkpoint])
+        callbacks=[model_checkpoint, early_stop])
         
         # model.save_weights(weightName)
 
@@ -379,7 +332,7 @@ if __name__ == '__main__':
         Reference['spacing'] = refImage.GetSpacing()
         Reference['direction'] = refImage.GetDirection()
     
-        ThreeDImageDir = os.path.join(data_path, 'Pred3D')
+        ThreeDImageDir = os.path.join (data_path, 'Pred3D', organ + leave_one_out_file)
         if not os.path.exists(ThreeDImageDir):
             subprocess.call('mkdir ' + '-p ' + ThreeDImageDir, shell=True)
         train_leave_one_out(tempStore, modelPath, ThreeDImageDir, Reference)

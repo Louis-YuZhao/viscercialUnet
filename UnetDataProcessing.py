@@ -10,11 +10,14 @@ import SimpleITK as sitk
 
 #organ = '29193_first_lumbar_vertebra'
 #organ = '170_pancreas'
-organ = '187_gallbladder'
+#organ = '187_gallbladder'
 #organ = '30325_left_adrenal_gland'
-#organ = '30324_right_adrenal_gland'
+organ = '30324_right_adrenal_gland'
 
-leave_one_out_file = 'TrainingDataWbCT'
+IFLeaveOne = True
+#leave_one_out_file = 'TrainingData'
+leave_one_out_file = 'TrainingDataFull'
+#leave_one_out_file = 'TrainingDataWbCT'
 
 #%%
 def ReadFoldandSort(data_path):
@@ -24,7 +27,6 @@ def ReadFoldandSort(data_path):
             imageList.append(os.path.join(data_path, fileItem))
     imageList.sort()
     return imageList
-
 
 def ReadVolumeData(data_path, outputID, outputTitle, dataType): 
   
@@ -68,8 +70,7 @@ def ReadVolumeData(data_path, outputID, outputTitle, dataType):
     np.save(outputID, imgs_id)
     print('Saving to .npy files done.')
     
-def ReadLabelData(data_path, outputTitle, dataType): 
-  
+def ReadLabelData(data_path, outputTitle, dataType):   
     imageList = []
     for fileItem in os.listdir(data_path):
         if fileItem.endswith(".nrrd"):
@@ -116,7 +117,7 @@ def ReadAddData(data_path, outputTitle, dataType):
     np.save(outputTitle, imgsArray)
     print('Saving to .npy files done.')
 
-def create_train_data(train_volume_path, train_label_path, train_add_path, tempStore):
+def create_train_data(train_volume_path, train_label_path, tempStore):
     
     print('-'*30)
     print('Creating training images...')
@@ -130,37 +131,27 @@ def create_train_data(train_volume_path, train_label_path, train_add_path, tempS
     # trainging label
     outputTitle = os.path.join(tempStore,'labs_train.npy')
     ReadLabelData(train_label_path, outputTitle, np.uint8)
-    
-    # training additional information
-    outputTitle = os.path.join(tempStore,'addInformation_train.npy')
-    ReadAddData(train_add_path, outputTitle, np.float32)
-    
-def create_test_data(test_volume_path, test_add_path, tempStore):
+
+def create_test_data(test_volume_path, tempStore):
     
     # test volume
     outputID = os.path.join(tempStore, 'imgs_id_test.npy')
     outputTitle = os.path.join(tempStore,'imgs_test.npy')
     ReadVolumeData(test_volume_path, outputID, outputTitle, np.float32)
-    
-    # test additional information
-    outputTitle = os.path.join(tempStore,'addInformation_test.npy')
-    ReadAddData(test_add_path, outputTitle, np.float32)
 
 def load_train_data(tempStore):
     imgs_train = np.load(os.path.join(tempStore,'imgs_train.npy'))
     imgs_label_train = np.load(os.path.join(tempStore,'labs_train.npy'))
-    addInformation_train = np.load(os.path.join(tempStore,'addInformation_train.npy'))
     imgs_id_train = np.load(os.path.join(tempStore, 'imgs_id_train.npy'))
-    return imgs_train, imgs_label_train, addInformation_train, imgs_id_train
+    return imgs_train, imgs_label_train, imgs_id_train
 
 def load_test_data(tempStore):
     imgs_test = np.load(os.path.join(tempStore, 'imgs_test.npy'))
-    addInformation_test = np.load(os.path.join(tempStore,'addInformation_test.npy'))
     imgs_id_test = np.load(os.path.join(tempStore, 'imgs_id_test.npy'))
-    return imgs_test, addInformation_test, imgs_id_test
+    return imgs_test, imgs_id_test
 
 def main():
-    data_path = '/media/data/louis/ProgramWorkResult/VisercialUnet/'
+    data_path = '/media/data/louis/ProgramWorkResult/ViscercialUnet_test_new/'
     
     tempStore = './tempData' 
     if not os.path.exists(tempStore):
@@ -169,28 +160,26 @@ def main():
     # train part
     train_volume_path = os.path.join(data_path, 'TrainingData', organ+'_Linear_Imagepatch')
     train_label_path = os.path.join(data_path, 'TrainingData', organ+'_Linear_Labelpatch')
-    train_add_path = os.path.join(data_path, 'TrainingData', organ+'_VPF')
-    create_train_data(train_volume_path, train_label_path, train_add_path, tempStore)
+    create_train_data(train_volume_path, train_label_path, tempStore)
     
     # test part
-    test_data_path = os.path.join(data_path, 'TestData', organ+'_Linear_Imagepatch')
-    test_add_path = os.path.join(data_path, 'TestData', organ+'_VPF')   
-    create_test_data(test_data_path, test_add_path, tempStore)
+    test_data_path = os.path.join(data_path, 'TestData', organ+'_Linear_Imagepatch')  
+    create_test_data(test_data_path, tempStore)
     
 def main_leave_one_out():
     
-    data_path = '/media/data/louis/ProgramWorkResult/VisercialUnet/'
-    
-    tempStore = './tempData' 
+    data_path = '/media/data/louis/ProgramWorkResult/ViscercialUnet_test_new/'    
+    tempStore = './tempData_' + organ
     if not os.path.exists(tempStore):
         subprocess.call('mkdir ' + '-p ' + tempStore, shell=True)
 
     # train part
     train_volume_path = os.path.join(data_path, leave_one_out_file, organ+'_Linear_Imagepatch')
     train_label_path = os.path.join(data_path, leave_one_out_file, organ+'_Linear_Labelpatch')
-    train_add_path = os.path.join(data_path, leave_one_out_file, organ+'_VPF')
-    create_train_data(train_volume_path, train_label_path, train_add_path, tempStore)
+    create_train_data(train_volume_path, train_label_path, tempStore)
     
 if __name__ == '__main__':
-#    main() 
-    main_leave_one_out()
+    if IFLeaveOne != True:
+        main()
+    else:
+        main_leave_one_out()
